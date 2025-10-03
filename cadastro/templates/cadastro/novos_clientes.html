@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Novos Clientes</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .card {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: none;
+            border-radius: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+        }
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #1e7e34);
+            border: none;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <!-- Menu Superior -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 rounded">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="bi bi-people-fill"></i> Sistema Geolocalização de novos Clientes
+                </a>
+                <div class="navbar-nav">
+                    <a class="nav-link" href="{% url 'cadastro:cadastrar_cliente' %}">
+                        <i class="bi bi-plus-circle"></i> Correção de Geolocalização de Clientes Existentes
+                    </a>
+                    <a class="nav-link active" href="{% url 'cadastro:novos_clientes' %}">
+                        <i class="bi bi-upload"></i> Geo de Novos Clientes
+                    </a>
+                    <a class="nav-link" href="{% url 'cadastro:exportar_dados' %}">
+                        <i class="bi bi-download"></i> Exportar Dados de Correção
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h2 class="mb-0"><i class="bi bi-cloud-upload"></i> Processar Novos Clientes</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- Mensagens -->
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %}"></i> 
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Formulário de Upload -->
+                        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                            {% csrf_token %}
+                            
+                            <div class="mb-4">
+                                <h5><i class="bi bi-info-circle"></i> Instruções:</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">1. Exporte o arquivo CSV do Promax 21.04.07 </li>
+                                    <li class="list-group-item">2. O arquivo deve conter colunas: Filial, Cliente, Coordenadas, Data Inclusão</li>
+                                    <li class="list-group-item">3. O sistema processará e gerará um arquivo TXT formatado</li>
+                                </ul>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="arquivo_csv" class="form-label">
+                                    <i class="bi bi-file-earmark-spreadsheet"></i> Selecione o arquivo CSV:
+                                </label>
+                                <input class="form-control" type="file" id="arquivo_csv" name="arquivo_csv" accept=".csv" required>
+                                <div class="form-text">
+                                    Formato esperado: CSV com separador ponto e vírgula (;)
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="bi bi-gear"></i> Processar Arquivo
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Informações do Processamento -->
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <h6><i class="bi bi-lightbulb"></i> O que será gerado:</h6>
+                            <p class="mb-1">Arquivo TXT no formato: <code>codigo_cliente;latitude;longitude</code></p>
+                            <small class="text-muted">Exemplo: 123;-25.456789;-51.987654</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Validação do formulário
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            const arquivo = document.getElementById('arquivo_csv').files[0];
+            
+            if (!arquivo) {
+                e.preventDefault();
+                alert('Por favor, selecione um arquivo CSV.');
+                return;
+            }
+            
+            if (!arquivo.name.toLowerCase().endsWith('.csv')) {
+                e.preventDefault();
+                alert('Por favor, selecione um arquivo CSV válido.');
+                return;
+            }
+            
+            // Mostrar loading
+            const btn = this.querySelector('button[type="submit"]');
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processando...';
+            btn.disabled = true;
+        });
+    </script>
+</body>
+</html>

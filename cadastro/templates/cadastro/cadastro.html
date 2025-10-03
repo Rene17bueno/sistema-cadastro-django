@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro de Cliente</title>
+    <!-- Bootstrap CSS via CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Font Awesome para ícones de usuários -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .table-actions {
+            white-space: nowrap;
+        }
+        .status-badge {
+            font-size: 0.75em;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .validation-error {
+            color: #dc3545;
+            font-size: 0.875em;
+            margin-top: 0.25rem;
+        }
+        .table-pendente {
+            background-color: #fff3cd !important;
+        }
+        .table-salvo {
+            background-color: #d1e7dd !important;
+        }
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,.8) !important;
+        }
+        .navbar-nav .nav-link:hover {
+            color: white !important;
+        }
+        .dropdown-menu {
+            background-color: #0d6efd;
+        }
+        .dropdown-item {
+            color: white !important;
+        }
+        .dropdown-item:hover {
+            background-color: #0b5ed7 !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+{% load widget_tweaks %}
+
+<div class="container mt-4">
+    <!-- Menu Superior ATUALIZADO -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-geo-alt-fill"></i> Sistema Correção de Geolocalização
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'cadastro:cadastrar_cliente' %}">
+                            <i class="bi bi-plus-circle"></i> Nova Correção
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'cadastro:novos_clientes' %}">
+                            <i class="bi bi-upload"></i> Novos Clientes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'cadastro:exportar_dados' %}">
+                            <i class="bi bi-download"></i> Exportar Dados
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Menu do Usuário -->
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <!-- Menu de Gerenciamento (apenas para admin) -->
+                        {% if user.tipo_acesso == 'admin' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-users-cog"></i> Gerenciar
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:gerenciar_usuarios' %}">
+                                        <i class="fas fa-users"></i> Gerenciar Usuários
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:listar_usuarios' %}">
+                                        <i class="fas fa-list"></i> Listar Usuários
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:criar_usuario' %}">
+                                        <i class="fas fa-user-plus"></i> Criar Usuário
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        {% endif %}
+
+                        <!-- Menu do Usuário Logado -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user"></i> {{ user.nome_completo|default:user.username }}
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:meu_perfil' %}">
+                                        <i class="fas fa-user-edit"></i> Meu Perfil
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:logout' %}">
+                                        <i class="fas fa-sign-out-alt"></i> Sair
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'cadastro:login' %}">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="row">
+        <!-- Formulário de Cadastro -->
+        <div class="col-md-6">
+            <div class="card shadow-lg mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0"><i class="bi bi-person-plus"></i> Formulário de Correção</h2>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Mensagens de sucesso/erro -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                <i class="bi bi-check-circle-fill"></i> {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" novalidate id="cadastroForm">
+                        {% csrf_token %}
+                        <input type="hidden" id="cliente_id" name="cliente_id" value="">
+                        
+                        <!-- Campo Unidade -->
+                        <div class="mb-3">
+                            <label for="id_unidade" class="form-label">
+                                <i class="bi bi-building"></i> Revenda 
+                            </label>
+                            {{ form.unidade|add_class:"form-select" }}
+                            <div class="validation-error" id="unidade_error"></div>
+                        </div>
+                        
+                        <!-- Campo Data de Cadastro -->
+                        <div class="mb-3">
+                            <label for="id_data_cadastro" class="form-label">
+                                <i class="bi bi-calendar-date"></i> Data de Cadastro
+                            </label>
+                            <input type="date" class="form-control" id="id_data_cadastro" name="data_cadastro" 
+                                   value="{{ form.data_cadastro.value|default:'' }}" required>
+                            <div class="validation-error" id="data_cadastro_error"></div>
+                        </div>
+
+                        <!-- Campo Código do Cliente -->
+                        <div class="mb-3">
+                            <label for="id_codigo_cliente" class="form-label">
+                                <i class="bi bi-123"></i> Código do Cliente
+                            </label>
+                            {{ form.codigo_cliente|add_class:"form-control" }}
+                            <div class="validation-error" id="codigo_cliente_error"></div>
+                        </div>
+
+                        <!-- Campo Latitude -->
+                        <div class="mb-3">
+                            <label for="id_latitude" class="form-label">
+                                <i class="bi bi-globe-americas"></i> Latitude
+                            </label>
+                            {{ form.latitude|add_class:"form-control" }}
+                            <div class="validation-error" id="latitude_error"></div>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> Exemplo: -23.420539 (entre -90 e 90)
+                            </div>
+                        </div>
+
+                        <!-- Campo Longitude -->
+                        <div class="mb-3">
+                            <label for="id_longitude" class="form-label">
+                                <i class="bi bi-globe"></i> Longitude
+                            </label>
+                            {{ form.longitude|add_class:"form-control" }}
+                            <div class="validation-error" id="longitude_error"></div>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> Exemplo: -51.933056 (entre -180 e 180)
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-success btn-lg" onclick="novoRegistro()" id="btnNovoRegistro">
+                                <i class="bi bi-plus-circle"></i> Novo Registro
+                            </button>
+                            <button type="button" class="btn btn-warning btn-lg" onclick="corrigirFormulario()" id="btnCorrigir" style="display:none;">
+                                <i class="bi bi-pencil"></i> Corrigir
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="limparFormulario()">
+                                <i class="bi bi-arrow-clockwise"></i> Limpar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Registros -->
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0"><i class="bi bi-table"></i> Registros para Salvar</h3>
+                    <div>
+                        <button class="btn btn-light btn-sm" onclick="carregarRegistrosDia()">
+                            <i class="bi bi-arrow-clockwise"></i> Atualizar
+                        </button>
+                        <button class="btn btn-success btn-sm ms-2" onclick="salvarTodos()" id="btnSalvarTodos">
+                            <i class="bi bi-check-all"></i> Salvar Todos
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Revenda</th>
+                                    <th>Código</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaRegistros">
+                                <!-- Dados carregados via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // URLs para as APIs
+    const API_URLS = {
+        lista: "{% url 'cadastro:lista_clientes' %}",
+        detalhe: "{% url 'cadastro:detalhe_cliente' 0 %}".replace('0', ''),
+        editar: "{% url 'cadastro:editar_cliente' 0 %}".replace('0', ''),
+        excluir: "{% url 'cadastro:excluir_cliente' 0 %}".replace('0', ''),
+        validar: "{% url 'cadastro:validar_cliente' %}",
+        salvar_individual: "{% url 'cadastro:cadastrar_cliente' %}"
+    };
+
+    let registrosPendentes = [];
+    let editandoId = null;
+
+    // ✅ CORREÇÃO RADICAL: Substituir completamente o campo de data
+    function inicializarDataCorreta() {
+        const dataCampo = document.getElementById('id_data_cadastro');
+        const dataAtual = new Date().toISOString().split('T')[0];
+        
+        // REMOVER QUALQUER valor anterior e forçar data atual
+        dataCampo.value = dataAtual;
+        dataCampo.setAttribute('value', dataAtual);
+        
+        console.log('🚀 Data inicializada para:', dataAtual);
+        return dataAtual;
+    }
+
+    // ✅ SEMPRE usar data atual
+    function obterDataAtual() {
+        const dataCampo = document.getElementById('id_data_cadastro');
+        const dataAtual = new Date().toISOString().split('T')[0];
+        
+        // Se não tiver data ou for diferente da atual, corrigir
+        if (!dataCampo.value || dataCampo.value !== dataAtual) {
+            dataCampo.value = dataAtual;
+        }
+        
+        return dataAtual;
+    }
+
+    // Carregar apenas registros do dia e unidade atual
+    function carregarRegistrosDia() {
+        const unidade = document.getElementById('id_unidade').value;
+        const data = obterDataAtual(); // ✅ SEMPRE data atual
+        
+        console.log('📅 Carregando registros para:', { unidade, data });
+        
+        if (unidade && data) {
+            fetch(API_URLS.lista + `?unidade=${unidade}&data=${data}`)
+                .then(response => response.json())
+                .then(data => {
+                    window.clientesSalvos = data.clientes || [];
+                    atualizarTabela();
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                });
+        }
+    }
+
+    // ✅ INICIALIZAÇÃO CORRIGIDA
+    document.addEventListener('DOMContentLoaded', function() {
+        // CORREÇÃO CRÍTICA: Forçar data atual imediatamente
+        setTimeout(() => {
+            inicializarDataCorreta();
+        }, 100);
+        
+        document.getElementById('id_unidade').addEventListener('change', carregarRegistrosDia);
+        
+        // Carregar registros iniciais
+        setTimeout(() => {
+            carregarRegistrosDia();
+        }, 200);
+        
+        inicializarTooltips();
+    });
+
+    // ✅ Função NOVO REGISTRO CORRIGIDA
+    async function novoRegistro() {
+        const formData = new FormData(document.getElementById('cadastroForm'));
+        const dados = Object.fromEntries(formData.entries());
+        
+        // ✅ CORREÇÃO: SEMPRE usar data atual, ignorando qualquer valor anterior
+        dados.data_cadastro = obterDataAtual();
+        
+        console.log('➕ Novo registro com data:', dados.data_cadastro);
+        
+        // Limpar validações anteriores
+        limparValidacoes();
+        
+        try {
+            showLoading(true, 'btnNovoRegistro');
+            const response = await fetch(API_URLS.validar, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify(dados)
+            });
+            
+            const result = await response.json();
+            
+            if (result.valid) {
+                // Adicionar à lista de pendentes
+                const novoRegistro = {
+                    id: 'temp_' + Date.now(),
+                    unidade: dados.unidade,
+                    codigo_cliente: dados.codigo_cliente,
+                    latitude: dados.latitude,
+                    longitude: dados.longitude,
+                    data_cadastro: dados.data_cadastro, // ✅ DATA ATUAL
+                    status: 'pendente'
+                };
+                
+                registrosPendentes.push(novoRegistro);
+                atualizarTabela();
+                limparCamposExcetoUnidadeData();
+                mostrarSucesso('✅ Registro adicionado à lista! Data: ' + formatarData(dados.data_cadastro));
+            } else {
+                mostrarErrosValidacao(result.errors);
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarErro('Erro ao validar dados');
+        } finally {
+            showLoading(false, 'btnNovoRegistro');
+        }
+    }
+
+    // ✅ Função para salvar todos os registros pendentes
+    async function salvarTodos() {
+        if (registrosPendentes.length === 0) {
+            mostrarInfo('Não há registros pendentes para salvar.');
+            return;
+        }
+        
+        const dataSalvamento = obterDataAtual();
+        if (!confirm(`💾 Salvar ${registrosPendentes.length} registros com data ${formatarData(dataSalvamento)}?`)) {
+            return;
+        }
+        
+        try {
+            showLoading(true, 'btnSalvarTodos');
+            
+            let salvosComSucesso = 0;
+            let erros = 0;
+            
+            // Salvar cada registro pendente
+            for (const registro of registrosPendentes) {
+                try {
+                    const response = await fetch(API_URLS.salvar_individual, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCSRFToken(),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new URLSearchParams({
+                            'unidade': registro.unidade,
+                            'data_cadastro': registro.data_cadastro, // ✅ DATA DO REGISTRO
+                            'codigo_cliente': registro.codigo_cliente,
+                            'latitude': registro.latitude,
+                            'longitude': registro.longitude
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        salvosComSucesso++;
+                    } else {
+                        erros++;
+                    }
+                } catch (error) {
+                    console.error('Erro ao salvar registro:', error);
+                    erros++;
+                }
+            }
+            
+            // Limpar lista de pendentes após salvar
+            registrosPendentes = [];
+            atualizarTabela();
+            carregarRegistrosDia();
+            
+            if (erros === 0) {
+                mostrarSucesso(`✅ ${salvosComSucesso} registros salvos com data ${formatarData(dataSalvamento)}!`);
+            } else {
+                mostrarErro(`⚠️ ${salvosComSucesso} salvos, ${erros} erros.`);
+            }
+            
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarErro('Erro ao salvar registros');
+        } finally {
+            showLoading(false, 'btnSalvarTodos');
+        }
+    }
+
+    // Função para atualizar tabela
+    function atualizarTabela() {
+        const tbody = document.getElementById('tabelaRegistros');
+        let html = '';
+
+        // ✅ REGISTROS PENDENTES
+        registrosPendentes.forEach(registro => {
+            html += `
+                <tr class="table-warning">
+                    <td>${registro.unidade}</td>
+                    <td>${registro.codigo_cliente}</td>
+                    <td>${registro.latitude}</td>
+                    <td>${registro.longitude}</td>
+                    <td><strong>${formatarData(registro.data_cadastro)}</strong></td>
+                    <td>
+                        <span class="badge bg-warning status-badge">
+                            <i class="bi bi-clock"></i> Pendente
+                        </span>
+                    </td>
+                    <td class="table-actions">
+                        <button class="btn btn-warning btn-sm" onclick="editarPendente('${registro.id}')">
+                            <i class="bi bi-pencil"></i> Corrigir
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="excluirPendente('${registro.id}')">
+                            <i class="bi bi-trash"></i> Excluir
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        // ✅ REGISTROS SALVOS
+        if (window.clientesSalvos && window.clientesSalvos.length > 0) {
+            window.clientesSalvos.forEach(cliente => {
+                html += `
+                    <tr class="table-success">
+                        <td>${cliente.unidade}</td>
+                        <td>${cliente.codigo_cliente}</td>
+                        <td>${cliente.latitude}</td>
+                        <td>${cliente.longitude}</td>
+                        <td>${formatarData(cliente.data_cadastro)}</td>
+                        <td>
+                            <span class="badge bg-success status-badge">
+                                <i class="bi bi-check-circle"></i> Salvo
+                            </span>
+                        </td>
+                        <td class="table-actions">
+                            <span class="text-muted">Salvo no banco</span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        if (!html) {
+            html = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted">
+                        <i class="bi bi-inbox"></i> Nenhum registro para exibir
+                    </td>
+                </tr>
+            `;
+        }
+
+        tbody.innerHTML = html;
+        inicializarTooltips();
+    }
+
+    // ✅ Função para editar registro pendente
+    function editarPendente(registroId) {
+        const registro = registrosPendentes.find(r => r.id === registroId);
+        if (registro) {
+            preencherFormulario(registro);
+            editandoId = registroId;
+            document.getElementById('btnCorrigir').style.display = 'block';
+            document.getElementById('btnNovoRegistro').style.display = 'none';
+            mostrarInfo('Registro carregado para correção.');
+        }
+    }
+
+    // ✅ Função CORRIGIR registro pendente
+    function corrigirFormulario() {
+        if (editandoId) {
+            const registroIndex = registrosPendentes.findIndex(r => r.id === editandoId);
+            if (registroIndex !== -1) {
+                const formData = new FormData(document.getElementById('cadastroForm'));
+                const dados = Object.fromEntries(formData.entries());
+                
+                // Manter a data original do registro
+                const dataOriginal = registrosPendentes[registroIndex].data_cadastro;
+                
+                registrosPendentes[registroIndex] = {
+                    ...registrosPendentes[registroIndex],
+                    codigo_cliente: dados.codigo_cliente,
+                    latitude: dados.latitude,
+                    longitude: dados.longitude,
+                    data_cadastro: dataOriginal
+                };
+                
+                atualizarTabela();
+                limparCamposExcetoUnidadeData();
+                document.getElementById('btnCorrigir').style.display = 'none';
+                document.getElementById('btnNovoRegistro').style.display = 'block';
+                editandoId = null;
+                mostrarSucesso('Registro corrigido!');
+            }
+        }
+    }
+
+    // ✅ Função para excluir registro pendente
+    function excluirPendente(registroId) {
+        if (confirm('Excluir este registro pendente?')) {
+            registrosPendentes = registrosPendentes.filter(r => r.id !== registroId);
+            atualizarTabela();
+            mostrarSucesso('Registro excluído!');
+        }
+    }
+
+    // ✅ Limpar apenas código, latitude e longitude
+    function limparCamposExcetoUnidadeData() {
+        document.getElementById('id_codigo_cliente').value = '';
+        document.getElementById('id_latitude').value = '';
+        document.getElementById('id_longitude').value = '';
+        limparValidacoes();
+    }
+
+    // Função para preencher formulário
+    function preencherFormulario(dados) {
+        document.getElementById('id_unidade').value = dados.unidade || '';
+        document.getElementById('id_data_cadastro').value = dados.data_cadastro || '';
+        document.getElementById('id_codigo_cliente').value = dados.codigo_cliente || '';
+        document.getElementById('id_latitude').value = dados.latitude || '';
+        document.getElementById('id_longitude').value = dados.longitude || '';
+    }
+
+    // ✅ Função para limpar formulário
+    function limparFormulario() {
+        document.getElementById('cadastroForm').reset();
+        document.getElementById('btnCorrigir').style.display = 'none';
+        document.getElementById('btnNovoRegistro').style.display = 'block';
+        // ✅ SEMPRE forçar data atual ao limpar
+        inicializarDataCorreta();
+        editandoId = null;
+        limparValidacoes();
+    }
+
+    // Função para limpar validações
+    function limparValidacoes() {
+        const errors = document.querySelectorAll('.validation-error');
+        errors.forEach(error => error.textContent = '');
+    }
+
+    // Função para formatar data
+    function formatarData(dataString) {
+        if (!dataString) return '-';
+        const data = new Date(dataString + 'T00:00:00'); // ✅ Corrigir fuso horário
+        return data.toLocaleDateString('pt-BR');
+    }
+
+    // Função para obter token CSRF
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    // Função para mostrar/ocultar loading
+    function showLoading(show, elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            if (show) {
+                element.classList.add('loading');
+                element.disabled = true;
+                const originalText = element.innerHTML;
+                element.setAttribute('data-original-text', originalText);
+                element.innerHTML = '<i class="bi bi-hourglass-split"></i> Carregando...';
+            } else {
+                element.classList.remove('loading');
+                element.disabled = false;
+                const originalText = element.getAttribute('data-original-text');
+                if (originalText) {
+                    element.innerHTML = originalText;
+                }
+            }
+        }
+    }
+
+    // Função para mostrar erros de validação
+    function mostrarErrosValidacao(errors) {
+        for (const campo in errors) {
+            const errorElement = document.getElementById(campo + '_error');
+            if (errorElement) {
+                errorElement.textContent = errors[campo].join(', ');
+            }
+        }
+        mostrarErro('❌ Erros encontrados. Verifique os campos destacados.');
+    }
+
+    // Funções de notificação
+    function mostrarSucesso(mensagem) {
+        alert('✅ ' + mensagem);
+    }
+
+    function mostrarErro(mensagem) {
+        alert('❌ ' + mensagem);
+    }
+
+    function mostrarInfo(mensagem) {
+        alert('ℹ️ ' + mensagem);
+    }
+
+    // Inicializar tooltips
+    function inicializarTooltips() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+
+    // Validação em tempo real
+    document.getElementById('id_latitude').addEventListener('blur', validarCoordenada);
+    document.getElementById('id_longitude').addEventListener('blur', validarCoordenada);
+    document.getElementById('id_codigo_cliente').addEventListener('blur', validarCodigoCliente);
+
+    function validarCoordenada(e) {
+        const campo = e.target;
+        const valor = campo.value;
+        const tipo = campo.id === 'id_latitude' ? 'latitude' : 'longitude';
+        
+        if (valor && !isValidCoordinate(valor, tipo)) {
+            campo.style.borderColor = '#dc3545';
+        } else {
+            campo.style.borderColor = '#dee2e6';
+        }
+    }
+
+    function validarCodigoCliente(e) {
+        const campo = e.target;
+        const valor = campo.value;
+        
+        if (valor && !/^\d+$/.test(valor)) {
+            campo.style.borderColor = '#dc3545';
+        } else {
+            campo.style.borderColor = '#dee2e6';
+        }
+    }
+
+    // Função para validar coordenadas
+    function isValidCoordinate(coord, type) {
+        const num = parseFloat(coord);
+        if (isNaN(num)) return false;
+        
+        if (type === 'latitude') {
+            return num >= -90 && num <= 90;
+        } else if (type === 'longitude') {
+            return num >= -180 && num <= 180;
+        }
+        return false;
+    }
+</script>
+</body>
+</html>

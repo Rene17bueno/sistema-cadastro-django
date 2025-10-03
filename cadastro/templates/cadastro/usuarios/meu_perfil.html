@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Meu Perfil - GeoSystem</title>
+</head>
+<body>
+    <h1>Meu Perfil</h1>
+    <p><strong>Nome:</strong> {{ user.nome_completo }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Unidade:</strong> {{ user.unidade }}</p>
+    <p><strong>Cargo:</strong> {{ user.cargo }}</p>
+    <p><strong>Tipo de Acesso:</strong> {{ user.get_tipo_acesso_display }}</p>
+    
+    <a href="{% url 'cadastro:cadastrar_cliente' %}">Voltar ao Cadastro</a>
+    <br>
+    <a href="{% url 'cadastro:logout' %}">Sair</a>
+</body>
+</html>

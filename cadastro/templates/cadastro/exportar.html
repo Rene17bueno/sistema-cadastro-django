@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Exportar Dados de Correção</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .table-actions { white-space: nowrap; }
+        .filter-card { background-color: #f8f9fa; }
+        .summary-card { background-color: #e8f5e8; }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="bi bi-geo-alt-fill"></i> Sistema Geolocalização
+                </a>
+                <div class="navbar-nav">
+                    <a class="nav-link" href="{% url 'cadastro:cadastrar_cliente' %}">
+                        <i class="bi bi-plus-circle"></i> Geo de Novo Cadastro
+                    </a>
+                    <a class="nav-link active" href="{% url 'cadastro:exportar_dados' %}">
+                        <i class="bi bi-download"></i> Exportar Dados de Correção
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Card de Filtros -->
+        <div class="card shadow-lg mb-4 filter-card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-funnel"></i> Filtros de Pesquisa</h4>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{% url 'cadastro:exportar_dados' %}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="unidade" class="form-label">Revenda</label>
+                            <select name="unidade" id="unidade" class="form-select">
+                                <option value="">Todas as Unidades</option>
+                                <option value="Maringá" {% if unidade_selecionada == "Maringá" %}selected{% endif %}>Maringá</option>
+                                <option value="Guarapuava" {% if unidade_selecionada == "Guarapuava" %}selected{% endif %}>Guarapuava</option>
+                                <option value="Ponta Grossa" {% if unidade_selecionada == "Ponta Grossa" %}selected{% endif %}>Ponta Grossa</option>
+                                <option value="Norte Pioneiro" {% if unidade_selecionada == "Norte Pioneiro" %}selected{% endif %}>Norte Pioneiro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="data_inicio" class="form-label">Data Início</label>
+                            <input type="date" name="data_inicio" id="data_inicio" 
+                                   class="form-control" value="{{ data_inicio_selecionada }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="data_fim" class="form-label">Data Fim</label>
+                            <input type="date" name="data_fim" id="data_fim" 
+                                   class="form-control" value="{{ data_fim_selecionada }}">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-search"></i> Filtrar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Card de Resumo -->
+        {% if total_registros > 0 or request.GET %}
+        <div class="card shadow-lg mb-4 summary-card">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h5 class="text-primary">Total de Registros</h5>
+                        <h3 class="text-success">{{ total_registros }}</h3>
+                    </div>
+                    <div class="col-md-4">
+                        <h5 class="text-primary">Unidade</h5>
+                        <h4 class="text-info">{{ unidade_selecionada|default:"Todas" }}</h4>
+                    </div>
+                    <div class="col-md-4">
+                        <h5 class="text-primary">Período</h5>
+                        <h6 class="text-dark">
+                            {{ data_inicio_selecionada|default:"Início" }} 
+                            à {{ data_fim_selecionada|default:"Fim" }}
+                        </h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tabela de Resultados -->
+        {% if clientes_filtrados %}
+        <div class="card shadow-lg mb-4">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="bi bi-table"></i> Resultados da Pesquisa</h4>
+                <span class="badge bg-light text-dark fs-6">{{ total_registros }} registros</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Unidade</th>
+                                <th>Código Cliente</th>
+                                <th>Latitude</th>
+                                <th>Longitude</th>
+                                <th>Data Cadastro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cliente in clientes_filtrados %}
+                            <tr>
+                                <td>{{ cliente.id }}</td>
+                                <td>{{ cliente.unidade }}</td>
+                                <td>{{ cliente.codigo_cliente }}</td>
+                                <td>{{ cliente.latitude }}</td>
+                                <td>{{ cliente.longitude }}</td>
+                                <td>{{ cliente.data_cadastro|date:"d/m/Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% elif request.GET %}
+        <div class="alert alert-warning text-center">
+            <i class="bi bi-exclamation-triangle"></i> 
+            Nenhum registro encontrado com os filtros aplicados.
+        </div>
+        {% endif %}
+
+        <!-- Card de Exportação -->
+        <div class="card shadow-lg">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-download"></i> Exportar Dados</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">Escolha o formato para exportar os dados filtrados:</p>
+                
+                <div class="row g-3">
+                    <!-- EXCEL -->
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-earmark-excel text-success" style="font-size: 3rem;"></i>
+                                <h5 class="card-title mt-2">Excel</h5>
+                                <p class="card-text">Formato Excel (.xlsx) com formatação</p>
+                                {% if clientes_filtrados %}
+                                <a href="{% url 'cadastro:exportar_dados' %}?formato=excel&unidade={{ unidade_selecionada }}&data_inicio={{ data_inicio_selecionada }}&data_fim={{ data_fim_selecionada }}" 
+                                   class="btn btn-success">
+                                    <i class="bi bi-download"></i> Exportar Excel
+                                </a>
+                                {% else %}
+                                <button class="btn btn-success disabled">
+                                    <i class="bi bi-download"></i> Exportar Excel
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- CSV -->
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-earmark-spreadsheet text-primary" style="font-size: 3rem;"></i>
+                                <h5 class="card-title mt-2">CSV</h5>
+                                <p class="card-text">Formato planilha simples</p>
+                                {% if clientes_filtrados %}
+                                <a href="{% url 'cadastro:exportar_dados' %}?formato=csv&unidade={{ unidade_selecionada }}&data_inicio={{ data_inicio_selecionada }}&data_fim={{ data_fim_selecionada }}" 
+                                   class="btn btn-primary">
+                                    <i class="bi bi-download"></i> Exportar CSV
+                                </a>
+                                {% else %}
+                                <button class="btn btn-primary disabled">
+                                    <i class="bi bi-download"></i> Exportar CSV
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- TXT -->
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-text text-info" style="font-size: 3rem;"></i>
+                                <h5 class="card-title mt-2">TXT</h5>
+                                <p class="card-text">Formato texto simples</p>
+                                {% if clientes_filtrados %}
+                                <a href="{% url 'cadastro:exportar_dados' %}?formato=txt&unidade={{ unidade_selecionada }}&data_inicio={{ data_inicio_selecionada }}&data_fim={{ data_fim_selecionada }}" 
+                                   class="btn btn-info">
+                                    <i class="bi bi-download"></i> Exportar TXT
+                                </a>
+                                {% else %}
+                                <button class="btn btn-info disabled">
+                                    <i class="bi bi-download"></i> Exportar TXT
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- PDF -->
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-pdf text-danger" style="font-size: 3rem;"></i>
+                                <h5 class="card-title mt-2">PDF</h5>
+                                <p class="card-text">Documento formatado para impressão</p>
+                                {% if clientes_filtrados %}
+                                <a href="{% url 'cadastro:exportar_dados' %}?formato=pdf&unidade={{ unidade_selecionada }}&data_inicio={{ data_inicio_selecionada }}&data_fim={{ data_fim_selecionada }}" 
+                                   class="btn btn-danger">
+                                    <i class="bi bi-download"></i> Exportar PDF
+                                </a>
+                                {% else %}
+                                <button class="btn btn-danger disabled">
+                                    <i class="bi bi-download"></i> Exportar PDF
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if not clientes_filtrados and not request.GET %}
+                <div class="alert alert-info mt-4 text-center">
+                    <i class="bi bi-info-circle"></i> 
+                    Aplique os filtros acima para visualizar e exportar os dados.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Preenche data atual como padrão para data_fim
+        document.addEventListener('DOMContentLoaded', function() {
+            const dataFim = document.getElementById('data_fim');
+            if (dataFim && !dataFim.value) {
+                const today = new Date().toISOString().split('T')[0];
+                dataFim.value = today;
+            }
+        });
+    </script>
+</body>
+</html>
