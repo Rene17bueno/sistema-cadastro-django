@@ -25,14 +25,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure--chave-padrao-apenas-para-desenvolvimento')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# ATUALIZADO: Garante que o domínio do Render seja aceito
+# ATUALIZAÇÃO CRÍTICA PARA O RENDER:
+# 1. Busca a variável ALLOWED_HOSTS (que deve ser uma string de hosts separados por vírgula).
+# 2. Adiciona o host de produção do Render (que é injetado pelo Render na variável RENDER_EXTERNAL_URL).
+
 allowed_hosts_str = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = allowed_hosts_str.split(',')
 
-# Adiciona o domínio do Render explicitamente se não estiver em modo DEBUG
-if not DEBUG and '.render.com' not in allowed_hosts_str:
-    ALLOWED_HOSTS.append('.render.com')
-
+# Adiciona o domínio do Render (se existir) para corrigir o erro 400 Bad Request
+RENDER_EXTERNAL_URL = os.getenv('RENDER_EXTERNAL_URL')
+if RENDER_EXTERNAL_URL:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_URL.replace('https://', '').replace('http://', ''))
 
 # ----------------------------------------------------------------------
 # 2. DEFINIÇÃO DE APLICATIVOS
@@ -107,10 +110,12 @@ DATABASES = {
 # Configuração para banco de dados em produção (Render, etc.)
 if os.getenv('DATABASE_URL'):
     # ATUALIZADO: Deixa o dj_database_url configurar a URL do Render/PostgreSQL
-    # Removendo ssl_require=True para evitar conflitos, pois o Render já configura o SSL.
     DATABASES['default'] = dj_database_url.config(
         default=os.getenv('DATABASE_URL'),
         conn_max_age=600,
+        # O Render usa um proxy, então a verificação SSL já é tratada por ele.
+        # Descomentar a linha abaixo só se houver problemas de conexão SSL:
+        # ssl_require=True, 
     )
 
 # ----------------------------------------------------------------------
