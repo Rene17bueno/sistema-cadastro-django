@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Meu Perfil</title>
+    <title>Meu Perfil - GeoSystem</title>
     <style>
         .profile-container {
             max-width: 600px;
@@ -18,7 +18,8 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input, select {
+        /* Aplica o estilo de classe 'form-control' automaticamente com o ModelForm */
+        input:not([type="checkbox"]), select {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
@@ -31,6 +32,8 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            text-decoration: none; /* Adicionado para links */
+            display: inline-block;
         }
         .messages {
             margin: 10px 0;
@@ -40,6 +43,12 @@
             color: #155724;
             padding: 10px;
             border-radius: 4px;
+        }
+        .alert-error {
+             background: #f8d7da;
+             color: #721c24;
+             padding: 10px;
+             border-radius: 4px;
         }
     </style>
 </head>
@@ -59,36 +68,42 @@
             {% csrf_token %}
             
             <div class="form-group">
-                <label for="id_nome_completo">Nome Completo:</label>
+                <label for="{{ form.nome_completo.id_for_label }}">Nome Completo:</label>
                 {{ form.nome_completo }}
             </div>
 
             <div class="form-group">
-                <label for="id_email">Email:</label>
+                <label for="{{ form.email.id_for_label }}">Email:</label>
                 {{ form.email }}
+                <small style="color: #666;">{{ form.email.help_text|default_if_none:"" }}</small>
             </div>
-
+            
             <div class="form-group">
-                <label for="id_username">Usuário:</label>
-                {{ form.username }}
-            </div>
-
-            <div class="form-group">
-                <label for="id_unidade">Unidade:</label>
+                <label for="{{ form.unidade.id_for_label }}">Unidade:</label>
                 {{ form.unidade }}
             </div>
 
             <div class="form-group">
-                <label for="id_tipo_acesso">Tipo de Acesso:</label>
-                {{ form.tipo_acesso }}
+                <label for="{{ form.cargo.id_for_label }}">Cargo:</label>
+                {{ form.cargo }}
+            </div>
+            
+            <div class="form-group">
+                <label>Tipo de Acesso:</label>
+                <p><strong>{{ user.get_tipo_acesso_display }}</strong></p>
                 <small style="color: #666;">* Não pode ser alterado</small>
             </div>
-
+            
             <button type="submit" class="btn">Atualizar Perfil</button>
         </form>
 
-        <div style="margin-top: 20px;">
-            <a href="{% url 'cadastro:cadastrar_cliente' %}">← Voltar para o Cadastro</a>
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <a href="{% url 'cadastro:cadastrar_cliente' %}" class="btn">← Voltar para o Cadastro</a>
+            
+            <form method="post" action="{% url 'cadastro:logout' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn" style="background: #dc3545;">Sair</button>
+            </form>
         </div>
     </div>
 </body>

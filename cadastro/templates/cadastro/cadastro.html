@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Cadastro de Cliente</title>
-    <!-- Bootstrap CSS via CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Font Awesome para ícones de usuários -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .table-actions {
@@ -58,7 +55,6 @@
 {% load widget_tweaks %}
 
 <div class="container mt-4">
-    <!-- Menu Superior ATUALIZADO -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
@@ -88,10 +84,8 @@
                     </li>
                 </ul>
 
-                <!-- Menu do Usuário -->
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
-                        <!-- Menu de Gerenciamento (apenas para admin) -->
                         {% if user.tipo_acesso == 'admin' %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
@@ -118,7 +112,6 @@
                         </li>
                         {% endif %}
 
-                        <!-- Menu do Usuário Logado -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
                                data-bs-toggle="dropdown" aria-expanded="false">
@@ -131,12 +124,16 @@
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
+                                
                                 <li>
-                                    <a class="dropdown-item" href="{% url 'cadastro:logout' %}">
-                                        <i class="fas fa-sign-out-alt"></i> Sair
-                                    </a>
+                                    <form method="POST" action="{% url 'cadastro:logout' %}">
+                                        {% csrf_token %} 
+                                        <button type="submit" class="dropdown-item w-100 text-start" style="border: none; background: none;">
+                                            <i class="fas fa-sign-out-alt"></i> Sair
+                                        </button>
+                                    </form>
                                 </li>
-                            </ul>
+                                </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
@@ -151,7 +148,6 @@
     </nav>
 
     <div class="row">
-        <!-- Formulário de Cadastro -->
         <div class="col-md-6">
             <div class="card shadow-lg mb-4">
                 <div class="card-header bg-primary text-white">
@@ -159,7 +155,6 @@
                 </div>
                 <div class="card-body">
                     
-                    <!-- Mensagens de sucesso/erro -->
                     {% if messages %}
                         {% for message in messages %}
                             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -173,7 +168,6 @@
                         {% csrf_token %}
                         <input type="hidden" id="cliente_id" name="cliente_id" value="">
                         
-                        <!-- Campo Unidade -->
                         <div class="mb-3">
                             <label for="id_unidade" class="form-label">
                                 <i class="bi bi-building"></i> Revenda 
@@ -182,7 +176,6 @@
                             <div class="validation-error" id="unidade_error"></div>
                         </div>
                         
-                        <!-- Campo Data de Cadastro -->
                         <div class="mb-3">
                             <label for="id_data_cadastro" class="form-label">
                                 <i class="bi bi-calendar-date"></i> Data de Cadastro
@@ -192,7 +185,6 @@
                             <div class="validation-error" id="data_cadastro_error"></div>
                         </div>
 
-                        <!-- Campo Código do Cliente -->
                         <div class="mb-3">
                             <label for="id_codigo_cliente" class="form-label">
                                 <i class="bi bi-123"></i> Código do Cliente
@@ -201,7 +193,6 @@
                             <div class="validation-error" id="codigo_cliente_error"></div>
                         </div>
 
-                        <!-- Campo Latitude -->
                         <div class="mb-3">
                             <label for="id_latitude" class="form-label">
                                 <i class="bi bi-globe-americas"></i> Latitude
@@ -213,7 +204,6 @@
                             </div>
                         </div>
 
-                        <!-- Campo Longitude -->
                         <div class="mb-3">
                             <label for="id_longitude" class="form-label">
                                 <i class="bi bi-globe"></i> Longitude
@@ -241,7 +231,6 @@
             </div>
         </div>
 
-        <!-- Tabela de Registros -->
         <div class="col-md-6">
             <div class="card shadow-lg">
                 <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
@@ -270,8 +259,7 @@
                                 </tr>
                             </thead>
                             <tbody id="tabelaRegistros">
-                                <!-- Dados carregados via AJAX -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -280,7 +268,6 @@
     </div>
 </div>
 
-<!-- Bootstrap JS via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>

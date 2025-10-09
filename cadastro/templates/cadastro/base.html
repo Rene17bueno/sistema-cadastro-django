@@ -1,160 +1,207 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sistema de Correção de Geolocalização{% endblock %}</title>
-    
-    <!-- Bootstrap CSS via CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <style>
-        .navbar-nav .nav-link {
-            color: rgba(255,255,255,.8) !important;
-        }
-        .navbar-nav .nav-link:hover {
-            color: white !important;
-        }
-        .dropdown-menu {
-            background-color: #0d6efd;
-        }
-        .dropdown-item {
-            color: white !important;
-        }
-        .dropdown-item:hover {
-            background-color: #0b5ed7 !important;
-            color: white !important;
-        }
-    </style>
-    
-    {% block extra_css %}{% endblock %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Correção de Geolocalização{% endblock %}</title>
+    
+    <!-- Bootstrap CSS via CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+/* =============================
+   NAVBAR E DROPDOWN
+   ============================= */
+
+/* Links do menu principal */
+.navbar-nav .nav-link {
+    color: #ffffff !important; /* Branco fixo */
+    opacity: 0.8;              /* Transparência leve */
+    transition: opacity 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #ffffff !important;
+    opacity: 1;
+}
+
+/* Menu dropdown */
+.dropdown-menu {
+    background-color: #0d6efd; /* Azul padrão Bootstrap */
+    border: none;              /* Remove borda padrão */
+}
+
+.dropdown-item {
+    color: #ffffff;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #0b5ed7; /* Azul escuro no hover */
+    color: #ffffff;
+}
+
+/* =============================
+   BOTÃO "SAIR" COMO FORMULÁRIO
+   ============================= */
+
+.form-logout {
+    margin: 0;
+    padding: 0;
+}
+
+.form-logout button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    text-align: left;
+    padding: 0.25rem 1rem;
+    width: 100%;
+    display: block;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.form-logout button:hover {
+    background-color: #0b5ed7;
+    color: #ffffff;
+}
+</style>
+
+    
+    {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-light">
 
-    <!-- Menu Superior -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'cadastro:cadastrar_cliente' %}">
-                <i class="bi bi-geo-alt-fill"></i> Sistema Correção de Geolocalização
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'cadastrar_cliente' %}active{% endif %}" 
-                           href="{% url 'cadastro:cadastrar_cliente' %}">
-                            <i class="bi bi-plus-circle"></i> Nova Correção
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'novos_clientes' %}active{% endif %}" 
-                           href="{% url 'cadastro:novos_clientes' %}">
-                            <i class="bi bi-upload"></i> Novos Clientes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'exportar_dados' %}active{% endif %}" 
-                           href="{% url 'cadastro:exportar_dados' %}">
-                            <i class="bi bi-download"></i> Exportar Dados
-                        </a>
-                    </li>
-                </ul>
+    <!-- Menu Superior -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'cadastro:cadastrar_cliente' %}">
+                <i class="bi bi-geo-alt-fill"></i> Sistema Correção de Geolocalização
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'cadastrar_cliente' %}active{% endif %}" 
+                            href="{% url 'cadastro:cadastrar_cliente' %}">
+                            <i class="bi bi-plus-circle"></i> Nova Correção
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'novos_clientes' %}active{% endif %}" 
+                            href="{% url 'cadastro:novos_clientes' %}">
+                            <i class="bi bi-upload"></i> Novos Clientes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'exportar_dados' %}active{% endif %}" 
+                            href="{% url 'cadastro:exportar_dados' %}">
+                            <i class="bi bi-download"></i> Exportar Dados
+                        </a>
+                    </li>
+                </ul>
 
-                <!-- Menu do Usuário -->
-                <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
-                        <!-- Menu de Gerenciamento (apenas para admin) -->
-                        {% if user.tipo_acesso == 'admin' or user.is_superuser %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
-                               data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-users-cog"></i> Gerenciar
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'cadastro:gerenciar_usuarios' %}">
-                                        <i class="fas fa-users"></i> Gerenciar Usuários
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'cadastro:listar_usuarios' %}">
-                                        <i class="fas fa-list"></i> Listar Usuários
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'cadastro:criar_usuario' %}">
-                                        <i class="fas fa-user-plus"></i> Criar Usuário
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        {% endif %}
+                <!-- Menu do Usuário -->
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <!-- Menu de Gerenciamento (apenas para admin) -->
+                        {% if user.tipo_acesso == 'admin' or user.is_superuser %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-users-cog"></i> Gerenciar
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:gerenciar_usuarios' %}">
+                                        <i class="fas fa-users"></i> Gerenciar Usuários
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:listar_usuarios' %}">
+                                        <i class="fas fa-list"></i> Listar Usuários
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:criar_usuario' %}">
+                                        <i class="fas fa-user-plus"></i> Criar Usuário
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        {% endif %}
 
-                        <!-- Menu do Usuário Logado -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
-                               data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-user"></i> {{ user.nome_completo|default:user.username }}
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'cadastro:meu_perfil' %}">
-                                        <i class="fas fa-user-edit"></i> Meu Perfil
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'cadastro:logout' %}">
-                                        <i class="fas fa-sign-out-alt"></i> Sair
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'cadastro:login' %}">
-                                <i class="fas fa-sign-in-alt"></i> Login
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
+                        <!-- Menu do Usuário Logado -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user"></i> {{ user.nome_completo|default:user.username }}
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cadastro:meu_perfil' %}">
+                                        <i class="fas fa-user-edit"></i> Meu Perfil
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- CORREÇÃO AQUI: Link Sair transformado em formulário POST -->
+                                <li>
+                                    <form method="post" action="{% url 'cadastro:logout' %}" class="form-logout">
+                                        {% csrf_token %}
+                                        <button type="submit">
+                                            <i class="fas fa-sign-out-alt"></i> Sair
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'cadastro:login' %}">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <div class="container">
-        <!-- Mensagens -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    <i class="bi 
-                        {% if message.tags == 'success' %}bi-check-circle-fill
-                        {% elif message.tags == 'error' %}bi-exclamation-circle-fill
-                        {% elif message.tags == 'warning' %}bi-exclamation-triangle-fill
-                        {% else %}bi-info-circle-fill{% endif %}
-                    "></i> 
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+    <div class="container">
+        <!-- Mensagens -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="bi 
+                        {% if message.tags == 'success' %}bi-check-circle-fill
+                        {% elif message.tags == 'error' %}bi-exclamation-circle-fill
+                        {% elif message.tags == 'warning' %}bi-exclamation-triangle-fill
+                        {% else %}bi-info-circle-fill{% endif %}
+                    "></i> 
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
 
-        <!-- Conteúdo das páginas -->
-        {% block content %}
-        {% endblock %}
-    </div>
+        <!-- Conteúdo das páginas -->
+        {% block content %}
+        {% endblock %}
+    </div>
 
-    <!-- Bootstrap JS via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    {% block extra_js %}{% endblock %}
+    <!-- Bootstrap JS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

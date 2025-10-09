@@ -2,7 +2,22 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
 
-# ✅ MODELO PARA GERENCIAR USUÁRIOS PERSONALIZADOS
+# =============================================
+# CONSTANTES GLOBAIS
+# =============================================
+
+# Constante de escolhas para Unidade
+UNIDADE_CHOICES = [
+    ('Maringá', 'Maringá'),
+    ('Guarapuava', 'Guarapuava'),
+    ('Ponta Grossa', 'Ponta Grossa'),
+    ('Norte Pioneiro', 'Norte Pioneiro'),
+]
+
+# =============================================
+# MODELO DE USUÁRIO PERSONALIZADO
+# =============================================
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -33,14 +48,10 @@ class CustomUser(AbstractUser):
         ('operador', 'Operador'),
     ]
     
-    UNIDADE_CHOICES = [
-        ('Maringá', 'Maringá'),
-        ('Guarapuava', 'Guarapuava'),
-        ('Ponta Grossa', 'Ponta Grossa'),
-        ('Norte Pioneiro', 'Norte Pioneiro'),
-    ]
-    
-    # ✅ CORREÇÃO: Mantemos o username mas tornamos opcional
+    # Unidade usa a constante global UNIDADE_CHOICES
+    unidade = models.CharField('Unidade', max_length=100, choices=UNIDADE_CHOICES, default='Maringá')
+
+    # Mantemos o username, mas permitimos que seja nulo/opcional
     username = models.CharField(
         'Nome de usuário', 
         max_length=150, 
@@ -52,14 +63,10 @@ class CustomUser(AbstractUser):
     
     email = models.EmailField('Email', unique=True)
     nome_completo = models.CharField('Nome Completo', max_length=100)
-    unidade = models.CharField('Unidade', max_length=100, choices=UNIDADE_CHOICES, default='Maringá')
     cargo = models.CharField('Cargo', max_length=100, blank=True)
     tipo_acesso = models.CharField('Tipo de Acesso', max_length=20, choices=TIPO_ACESSO_CHOICES, default='operador')
     data_criacao = models.DateTimeField('Data de Criação', auto_now_add=True)
     
-    # ✅ REMOVIDO: campo 'ativo' duplicado (já existe 'is_active' no AbstractUser)
-    
-    # ✅ CORREÇÃO: Adicionar related_name único e on_delete
     criado_por = models.ForeignKey(
         'self', 
         on_delete=models.SET_NULL, 
@@ -68,16 +75,21 @@ class CustomUser(AbstractUser):
         related_name='usuarios_criados'
     )
 
-    # ✅ Configura para usar email como campo de login
+    # Configura para usar email como campo de login
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nome_completo', 'unidade']
 
     objects = CustomUserManager()
 
     def save(self, *args, **kwargs):
-        # Se username estiver vazio, usa parte do email
+        # Se username estiver vazio, usa parte do email para preenchimento automático
         if not self.username and self.email:
-            self.username = self.email.split('@')[0]
+            # Garantimos que seja um username único, adicionando o ID se necessário (embora não seja estritamente necessário no save)
+            base_username = self.email.split('@')[0].lower()
+            self.username = base_username
+            # O AbstractUser já tem uma lógica para garantir a unicidade, 
+            # mas essa linha simples já ajuda a preencher o campo.
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -92,22 +104,20 @@ class CustomUser(AbstractUser):
             ("acesso_cadastro", "Acesso apenas ao cadastro"),
         ]
 
-# ✅ MODELO CLIENTE EXISTENTE (MANTIDO E CORRIGIDO)
+# =============================================
+# MODELO CLIENTE
+# =============================================
 class Cliente(models.Model):
-    UNIDADE_CHOICES = [
-        ('Maringá', 'Maringá'),
-        ('Guarapuava', 'Guarapuava'),
-        ('Ponta Grossa', 'Ponta Grossa'),
-        ('Norte Pioneiro', 'Norte Pioneiro'),
-    ]
     
+    # Unidade usa a constante global UNIDADE_CHOICES
     unidade = models.CharField(max_length=100, choices=UNIDADE_CHOICES)
     data_cadastro = models.DateField()
     codigo_cliente = models.CharField(max_length=50)
     
-    # ✅ CORREÇÃO: Aumentei a precisão dos campos de geolocalização
-    latitude = models.DecimalField(max_digits=20, decimal_places=15)
-    longitude = models.DecimalField(max_digits=20, decimal_places=15)
+    # ✅ Padronização: 18 dígitos no total, 15 casas decimais é uma precisão comum e segura
+    # (Por exemplo, um DecimalField(max_digits=20, decimal_places=15) já é mais que o suficiente)
+    latitude = models.DecimalField(max_digits=18, decimal_places=15)
+    longitude = models.DecimalField(max_digits=18, decimal_places=15)
     
     def __str__(self):
         return f"{self.codigo_cliente} - {self.unidade}"
@@ -115,3 +125,7 @@ class Cliente(models.Model):
     class Meta:
         verbose_name = "Cliente"
         verbose_name_plural = "Clientes"
+        # Adiciona um índice composto para consultas rápidas
+        # constraints = [
+        #     models.UniqueConstraint(fields=['codigo_cliente', 'unidade', 'data_cadastro'], name='unique_cliente_unidade_data')
+        # ]

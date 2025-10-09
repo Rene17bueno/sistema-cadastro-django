@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import Cliente, CustomUser
 
+# Seu ClienteForm (Mantido)
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
@@ -32,7 +33,7 @@ class ClienteForm(forms.ModelForm):
             raise forms.ValidationError("A longitude deve estar entre -180 e 180 graus.")
         return longitude
 
-# ✅ FORMS PARA USUÁRIOS PERSONALIZADOS - CORRIGIDOS para email como username
+# Seu CustomUserCreationForm (Mantido)
 class CustomUserCreationForm(UserCreationForm):
     password1 = forms.CharField(
         label="Senha",
@@ -128,6 +129,7 @@ class CustomUserCreationForm(UserCreationForm):
             user.save()
         return user
 
+# Seu CustomUserEditForm (Mantido)
 class CustomUserEditForm(forms.ModelForm):
     class Meta:
         model = CustomUser
@@ -191,7 +193,8 @@ class CustomUserProfileForm(forms.ModelForm):
     
     class Meta:
         model = CustomUser
-        fields = ['nome_completo', 'email', 'unidade', 'cargo']
+        # Removemos 'username' e 'tipo_acesso' pois eles serão exibidos, mas não editados
+        fields = ['nome_completo', 'email', 'unidade', 'cargo'] 
         widgets = {
             'nome_completo': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -216,15 +219,15 @@ class CustomUserProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Torna o email readonly para evitar conflitos
+        # Torna o email readonly, pois ele é usado como login e não deve ser alterado aqui
         self.fields['email'].widget.attrs['readonly'] = True
         self.fields['email'].help_text = "O e-mail não pode ser alterado."
 
     def clean_email(self):
-        # Mantém o email original, não permite alteração
+        # Garante que o email original seja mantido (o Django fará a verificação de unicidade)
         return self.instance.email
 
-# ✅ FORM PARA ALTERAÇÃO DE SENHA DO PRÓPRIO USUÁRIO
+# Seu CustomPasswordChangeForm (Mantido)
 class CustomPasswordChangeForm(forms.Form):
     senha_atual = forms.CharField(
         label="Senha Atual",
@@ -278,6 +281,7 @@ class CustomPasswordChangeForm(forms.Form):
         self.user.set_password(nova_senha)
         self.user.save()
 
+# Seu PasswordResetForm (Mantido)
 class PasswordResetForm(forms.Form):
     nova_senha = forms.CharField(
         label="Nova Senha",
@@ -306,7 +310,7 @@ class PasswordResetForm(forms.Form):
         
         return cleaned_data
 
-# ✅ FORM SIMPLIFICADO para criação rápida de usuários
+# Seu QuickUserCreationForm (Mantido)
 class QuickUserCreationForm(forms.ModelForm):
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),

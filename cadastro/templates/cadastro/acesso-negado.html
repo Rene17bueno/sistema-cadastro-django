@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso Negado</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            margin-top: 50px; 
+            background-color: #f8f9fa;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: auto; 
+            padding: 30px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 8px; 
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: #dc3545; /* Vermelho forte para erro */
+            margin-bottom: 15px;
+        }
+        p {
+            color: #495057;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+        }
+        .btn-voltar, .btn-home {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+        .btn-voltar:hover, .btn-home:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Acesso Negado</h1>
+        <p>Você não tem permissão para acessar esta página. Parece que você tentou acessar uma área restrita sem a devida autorização.</p>
+        
+        <!-- Opção 1: Usar JavaScript para voltar (mantendo sua ideia original) -->
+        <button class="btn-voltar" onclick="history.back()">
+            &#8592; Voltar para a tela anterior
+        </button>
+        
+        <!-- Redireciona para a Home (Dashboard) que existe no urls.py -->
+        <a href="{% url 'cadastro:home' %}" class="btn-home">
+            Ir para a Página Inicial
+        </a>
+        
+        <!-- Opção alternativa: Redirecionar para o login -->
+        <!-- <a href="{% url 'cadastro:login' %}" class="btn-home" style="background-color: #6c757d;">
+            Ir para a Tela de Login
+        </a> -->
+
+        <div style="margin-top: 20px; font-size: 0.9em; color: #6c757d;">
+            Se o problema persistir, contate o administrador do sistema.
+        </div>
+    </div>
+</body>
+</html>

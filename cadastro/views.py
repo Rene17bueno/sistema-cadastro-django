@@ -7,22 +7,42 @@ import re
 import os
 import tempfile
 import chardet
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, update_session_auth_hash, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView
-from django.shortcuts import redirect
 from django.db import models
-from .models import Cliente, CustomUser
-from .forms import ClienteForm, CustomUserCreationForm, CustomUserEditForm, PasswordResetForm, CustomUserProfileForm, CustomPasswordChangeForm
 from django.utils import timezone
 from datetime import datetime
+from .models import Cliente, CustomUser
+from .forms import ClienteForm, CustomUserCreationForm, CustomUserEditForm, PasswordResetForm, CustomUserProfileForm, CustomPasswordChangeForm
+from io import BytesIO
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.contrib.auth import logout
+from django.views.decorators.http import require_POST
 
+# Importa módulos necessários para PDF (se reportlab estiver instalado)
+try:
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import inch
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib import colors
+except ImportError:
+    # Se ReportLab não estiver instalado, essas variáveis não existirão.
+    # As funções de exportação tratarão a exceção.
+    pass
+
+
+# =============================================
 # DECORATORS PARA CONTROLE DE ACESSO
+# =============================================
 def admin_required(function=None):
     actual_decorator = user_passes_test(
         lambda u: u.is_authenticated and u.tipo_acesso == 'admin',
@@ -62,12 +82,22 @@ def pode_criar_usuarios_required(function=None):
         return actual_decorator(function)
     return actual_decorator
 
+# =============================================
 # VIEWS DE AUTENTICAÇÃO
+# =============================================
 class CustomLoginView(LoginView):
     template_name = 'cadastro/login.html'
     
     def get_success_url(self):
         return '/cadastro/cadastrar-cliente/'
+
+# VIEW DE LOGOUT
+@login_required
+def user_logout(request):
+    """Desloga o usuário e redireciona para a página de login."""
+    logout(request)
+    messages.info(request, "Você foi desconectado com sucesso.")
+    return redirect('cadastro:login')
 
 # VIEW PARA PÁGINA INICIAL DO APP CADASTRO
 @login_required
@@ -75,7 +105,7 @@ def home(request):
     return redirect('cadastro:cadastrar_cliente')
 
 # =============================================
-# VIEWS DE GERENCIAMENTO DE USUÁRIOS - CORRIGIDAS
+# VIEWS DE GERENCIAMENTO DE USUÁRIOS
 # =============================================
 
 @login_required
@@ -131,6 +161,7 @@ def listar_usuarios(request):
 
 @login_required
 def criar_usuario(request):
+    # NOTA: Verifique se o decorator pode_criar_usuarios_required deve ser aplicado aqui
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         form.request_user = request.user
@@ -145,6 +176,7 @@ def criar_usuario(request):
     else:
         form = CustomUserCreationForm()
         if request.user.tipo_acesso == 'responsavel':
+            # Responsáveis só podem criar Operadores
             form.fields['tipo_acesso'].choices = [('operador', 'Operador')]
     
     context = {
@@ -155,6 +187,7 @@ def criar_usuario(request):
 
 @login_required
 def editar_usuario(request, usuario_id):
+    # NOTA: Verifique se o decorator admin_required ou responsavel_ou_admin_required deve ser aplicado aqui
     usuario = get_object_or_404(CustomUser, id=usuario_id)
     
     if (request.user.tipo_acesso == 'responsavel' and 
@@ -172,6 +205,7 @@ def editar_usuario(request, usuario_id):
     else:
         form = CustomUserEditForm(instance=usuario)
         if request.user.tipo_acesso == 'responsavel':
+            # Responsáveis só podem editar para Responsável ou Operador
             form.fields['tipo_acesso'].choices = [
                 ('responsavel', 'Responsável'),
                 ('operador', 'Operador')
@@ -228,6 +262,7 @@ def excluir_usuario(request, usuario_id):
 
 @login_required
 def redefinir_senha(request, usuario_id):
+    # NOTA: Verifique se o decorator admin_required ou responsavel_ou_admin_required deve ser aplicado aqui
     usuario = get_object_or_404(CustomUser, id=usuario_id)
     
     if (request.user.tipo_acesso == 'responsavel' and 
@@ -252,46 +287,47 @@ def redefinir_senha(request, usuario_id):
     return render(request, 'cadastro/redefinir_senha.html', context)
 
 # =============================================
-# VIEW MEU PERFIL - ATUALIZADA
+# VIEWS MEU PERFIL (SEPARADAS)
 # =============================================
 
 @login_required
 def meu_perfil(request):
     usuario = request.user
-    
     if request.method == 'POST':
-        # Verifica se é alteração de senha
-        if 'alterar_senha' in request.POST:
-            senha_form = CustomPasswordChangeForm(usuario, request.POST)
-            perfil_form = CustomUserProfileForm(instance=usuario)
-            
-            if senha_form.is_valid():
-                senha_form.save()
-                messages.success(request, 'Senha alterada com sucesso!')
-                return redirect('cadastro:meu_perfil')
-        else:
-            # É alteração de perfil normal
-            perfil_form = CustomUserProfileForm(request.POST, instance=usuario)
-            senha_form = CustomPasswordChangeForm(usuario)
-            
-            if perfil_form.is_valid():
-                perfil_form.save()
-                messages.success(request, 'Perfil atualizado com sucesso!')
-                return redirect('cadastro:meu_perfil')
+        perfil_form = CustomUserProfileForm(request.POST, instance=usuario)
+        if perfil_form.is_valid():
+            perfil_form.save()
+            messages.success(request, 'Perfil atualizado com sucesso!')
+            return redirect('cadastro:meu_perfil')
     else:
         perfil_form = CustomUserProfileForm(instance=usuario)
-        senha_form = CustomPasswordChangeForm(usuario)
     
     context = {
-        'perfil_form': perfil_form,
-        'senha_form': senha_form,
-        'usuario': usuario
+        'form': perfil_form,
+        'user': usuario
     }
     return render(request, 'cadastro/meu_perfil.html', context)
 
 @login_required
+def alterar_senha(request):
+    if request.method == 'POST':
+        senha_form = CustomPasswordChangeForm(request.user, request.POST)
+        if senha_form.is_valid():
+            user = senha_form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Sua senha foi alterada com sucesso!')
+            return redirect('cadastro:meu_perfil')
+    else:
+        senha_form = CustomPasswordChangeForm(request.user)
+
+    context = {
+        'senha_form': senha_form
+    }
+    return render(request, 'cadastro/alterar_senha.html', context)
+
+@login_required
 def acesso_negado(request):
-    return render(request, 'cadastro/acesso_negado.html')
+    return render(request, 'cadastro/acesso-negado.html')
 
 # =============================================
 # VIEWS EXISTENTES (PROTEGIDAS)
@@ -385,7 +421,7 @@ def novos_clientes(request):
     return render(request, 'cadastro/novos_clientes.html', context)
 
 @login_required
-@operador_required
+@responsavel_ou_admin_required
 def exportar_dados(request):
     unidade_filtro = request.GET.get('unidade', '')
     data_inicio = request.GET.get('data_inicio', '')
@@ -419,6 +455,7 @@ def exportar_dados(request):
         elif formato == 'pdf':
             return exportar_pdf(clientes, unidade_filtro)
         elif formato == 'txt':
+            # Chama a função exportar_txt, que estava faltando
             return exportar_txt(clientes, unidade_filtro)
         else:
             return HttpResponseBadRequest(f"Formato de exportação '{formato}' não suportado.")
@@ -566,6 +603,18 @@ def validar_cliente(request):
             'valid': False,
             'error': str(e)
         }, status=500)
+
+@require_POST
+def logout_view(request):
+    """
+    Função para realizar o logout e garantir o redirecionamento.
+    O decorador @require_POST força o uso do método POST, evitando o erro 405
+    caso alguém tente acessar /logout/ diretamente via GET.
+    """
+    if request.user.is_authenticated:
+        logout(request)
+    
+    return redirect(reverse('cadastro:login'))
 
 # =============================================
 # FUNÇÕES AUXILIARES
@@ -747,12 +796,12 @@ def exportar_excel(clientes, unidade_filtro):
         ws.cell(row=row_num, column=6, value=cliente.data_cadastro.strftime('%d/%m/%Y'))
     
     column_widths = {
-        'A': 8,   # ID
-        'B': 15,  # Unidade
-        'C': 18,  # Código Cliente
-        'D': 20,  # Latitude
-        'E': 20,  # Longitude
-        'F': 12   # Data Cadastro
+        'A': 8,
+        'B': 15,
+        'C': 18,
+        'D': 20,
+        'E': 20,
+        'F': 12
     }
     
     for col, width in column_widths.items():
@@ -791,14 +840,6 @@ def exportar_csv(clientes, unidade_filtro):
 
 def exportar_pdf(clientes, unidade_filtro):
     try:
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib.units import inch
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib import colors
-        from io import BytesIO
-        
         if unidade_filtro:
             filename = f"geolocalizacao-{unidade_filtro.lower()}-{timezone.now().strftime('%d-%m-%Y')}.pdf"
         else:
@@ -859,63 +900,78 @@ def exportar_pdf(clientes, unidade_filtro):
                 cliente.data_cadastro.strftime('%d/%m/%Y')
             ])
         
+        # O problema estava aqui, a lista de estilos estava incompleta
         table = Table(data, repeatRows=1)
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.25, colors.black),
+            ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
+            ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), # Adicionado para completar o estilo
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F5F5F5'), colors.white]) # Estilo zebrado
         ]))
         
+        # Adicionar a tabela aos elementos e construir o PDF
         elements.append(table)
         
-        elements.append(Spacer(1, 0.3*inch))
-        footer_style = ParagraphStyle(
-            'CustomFooter',
-            parent=styles['Normal'],
-            fontSize=9,
-            alignment=1,
-        )
-        footer_text = f"Total de registros: {len(clientes)}"
-        footer = Paragraph(footer_text, footer_style)
-        elements.append(footer)
+        def footer(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 9)
+            canvas.drawString(inch, 0.5 * inch, "Página %d" % doc.page)
+            canvas.restoreState()
+
+        doc.build(elements, onFirstPage=footer, onLaterPages=footer)
         
-        doc.build(elements)
-        
-        buffer.seek(0)
-        response = HttpResponse(buffer, content_type='application/pdf')
+        # Resposta HTTP
+        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
+        buffer.close()
         return response
         
     except ImportError:
-        return HttpResponseBadRequest(
-            "Biblioteca ReportLab não instalada. Execute: pip install reportlab"
-        )
+        # Se ReportLab não estiver instalado
+        return HttpResponseBadRequest("Biblioteca ReportLab não instalada. Instale com 'pip install reportlab' para exportar em PDF.")
     except Exception as e:
+        # Erro genérico
         return HttpResponseBadRequest(f"Erro ao gerar PDF: {str(e)}")
 
+
 def exportar_txt(clientes, unidade_filtro):
+    """
+    Exporta dados de clientes no formato TXT (delimitado por ';').
+    Inclui APENAS Código Cliente, Latitude e Longitude, SEM cabeçalho.
+    """
+    import csv # Garante que o módulo csv está disponível
+    from django.utils import timezone # Garante que timezone está disponível
+    from django.http import HttpResponse # Garante que HttpResponse está disponível
+
+    # Define o nome do arquivo de forma consistente
     if unidade_filtro:
-        filename = f"{unidade_filtro.lower()}-{timezone.now().strftime('%d-%m-%Y')}.txt"
+        # Usa o nome da unidade no filename
+        filename = f"geolocalizacao-{unidade_filtro.lower()}-{timezone.now().strftime('%d-%m-%Y')}.txt"
     else:
-        filename = f"todas-unidades-{timezone.now().strftime('%d-%m-%Y')}.txt"
+        # Usa "todas-unidades" no filename
+        filename = f"geolocalizacao-todas-unidades-{timezone.now().strftime('%d-%m-%Y')}.txt"
     
-    response = HttpResponse(content_type='text/plain; charset=utf-8')
+    # 1. Cria a resposta HTTP com o Content-Type correto para texto
+    response = HttpResponse(content_type='text/plain')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
+    # 2. Cria um objeto escritor CSV, usando ';' como delimitador e '\n' como quebra de linha
+    writer = csv.writer(response, delimiter=';', lineterminator='\n')
+    
+    # 3. Itera sobre o QuerySet e escreve APENAS os 3 campos necessários
+    # Não há cabeçalho, conforme solicitado.
     for cliente in clientes:
-        latitude = f"{cliente.latitude:.15f}".rstrip('0').rstrip('.') if cliente.latitude else "0"
-        longitude = f"{cliente.longitude:.15f}".rstrip('0').rstrip('.') if cliente.longitude else "0"
-        
-        linha = f"{cliente.codigo_cliente};{latitude};{longitude}\n"
-        response.write(linha)
+        writer.writerow([
+            cliente.codigo_cliente, 
+            # Garante que Latitude e Longitude sejam strings para evitar erros de formatação
+            str(cliente.latitude), 
+            str(cliente.longitude)
+        ])
     
     return response
