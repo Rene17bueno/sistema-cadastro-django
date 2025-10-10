@@ -107,16 +107,9 @@ DATABASES = {
     }
 }
 
-# Configuração para banco de dados em produção (Render, etc.)
 if os.getenv('DATABASE_URL'):
-    # ATUALIZADO: Deixa o dj_database_url configurar a URL do Render/PostgreSQL
-    DATABASES['default'] = dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600,
-        # O Render usa um proxy, então a verificação SSL já é tratada por ele.
-        # Descomentar a linha abaixo só se houver problemas de conexão SSL:
-        # ssl_require=True, 
-    )
+    DATABASES['default'] = dj_database_url.parse(os.getenv('DATABASE_URL'), conn_max_age=600)
+    
 
 # ----------------------------------------------------------------------
 # 5. VALIDAÇÃO DE SENHA
