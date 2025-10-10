@@ -29,13 +29,17 @@ DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 # 1. Busca a variável ALLOWED_HOSTS (que deve ser uma string de hosts separados por vírgula).
 # 2. Adiciona o host de produção do Render (que é injetado pelo Render na variável RENDER_EXTERNAL_URL).
 
+# Configuração para Railway
 allowed_hosts_str = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = allowed_hosts_str.split(',')
 
-# Adiciona o domínio do Render (se existir) para corrigir o erro 400 Bad Request
-RENDER_EXTERNAL_URL = os.getenv('RENDER_EXTERNAL_URL')
-if RENDER_EXTERNAL_URL:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_URL.replace('https://', '').replace('http://', ''))
+# Adiciona domínio do Railway automaticamente
+RAILWAY_STATIC_URL = os.getenv('RAILWAY_STATIC_URL')
+if RAILWAY_STATIC_URL:
+    ALLOWED_HOSTS.append(RAILWAY_STATIC_URL.replace('https://', '').replace('http://', ''))
+
+# Permite qualquer domínio .railway.app por segurança
+ALLOWED_HOSTS.append('.railway.app')
 
 # ----------------------------------------------------------------------
 # 2. DEFINIÇÃO DE APLICATIVOS
@@ -169,16 +173,16 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Origens confiáveis para CSRF (apenas para desenvolvimento)
+# Origens confiáveis para CSRF
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000']
 
 # Configurações de segurança para produção
 if not DEBUG:
-    # ATUALIZADO: Adicionando o domínio do Render à lista de trusted origins se for ambiente de produção
-    # A variável de ambiente RENDER_EXTERNAL_URL é fornecida pelo Render
-    render_url = os.getenv('RENDER_EXTERNAL_URL')
-    if render_url:
-        CSRF_TRUSTED_ORIGINS.append(render_url)
+    # Adiciona domínios Railway para CSRF
+    CSRF_TRUSTED_ORIGINS.extend([
+        'https://*.railway.app',
+        'https://*.up.railway.app'
+    ])
         
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
